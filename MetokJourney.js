@@ -1,92 +1,91 @@
-function setup() {
-  createCanvas(400, 400);
-}
-
-let gameState = "start";
-
-
-function draw() {
-  background(220);
-  
-}
 let methok;
 let coinImg;
+let bgImage;
 let coins = [];
+let showMessage = false;
+let messageTimer = 0;
+let gameState = "start";
+let player = { x: 20, y: 315, size: 40 };
+let confetti = [];
+let showConfetti = false;
+let resetButton; // Declare variable for the reset button
+
 let storyIndex = 0;
 let story = [
   "Methok lived in a poor village in Tibet.",
-  "She dreamed of becoming a successful computer scientist.",
-  "One morning, she began her long walk north. And met a poor guy in disguise that helped her.",
-  "She got into MIT and became a compuster scientist ",
-  "She went back to improve her village and support tibetan people",
-  "Each coin she found told a piece of her story."
+  "She comes across a man who she helps, and in return he helps her study further.",
+  "She went back to improve her village and help Tibetans.",
+  "Kindness has a way of coming back to you.",
+  "She attended MIT and became a computer scientist.",
+  "She dreamed of becoming a successful computer scientist."
 ];
-
-let showMessage = false;
-let messageTimer = 0;
-let bgColor;
-
-let player = {
-  x: 50,
-  y: 250,
-  size: 40
-};
 
 function preload() {
   methok = loadImage("Methok.png");
   coinImg = loadImage("Coin.png");
+  bgImage = loadImage("background.png"); // Use your actual background image filename
 }
-function setup() {
-  createCanvas(600, 400);
-  bgColor = color(200, 230, 250);
 
+function setup() {
+  createCanvas(600, 400); // Define the size of the canvas
+  
+  // Create coins positions
   coins = [
-    { x: 150, y: 350, collected: false },
-    { x: 250, y: 250, collected: false },
-    { x: 350, y: 350, collected: false },
-    { x: 450, y: 250, collected: false },
-    { x: 550, y: 350, collected: false },
-    { x: 150, y: 250, collected: false } 
+    { x: 60, y: 300, collected: false },
+    { x: 270, y: 325, collected: false },
+    { x: 230, y: 190, collected: false },
+    { x: 200, y: 125, collected: false },
+    { x: 300, y: 291, collected: false },
+    { x: 200, y: 325, collected: false }
   ];
 
-  noSmooth();
-}
+  // Create the reset button and position it at the top left
+  resetButton = createButton("Reset");
+  resetButton.position(10, 10); // Place the button in the top-left corner
+  resetButton.mousePressed(resetGame); // Attach the reset event
 
-function showStartScreen() {
-  background(50, 100, 150);
-
-  fill(255);
-  textSize(32);
-  textAlign(CENTER, CENTER);
-  text("Methok's Journey", width / 2, height / 2 - 40);
-
-  textSize(16);
-  text("Press any key to Play", width / 2, height / 2 + 20);
+  noSmooth(); // Smooth graphics are turned off for a pixelated style (optional)
 }
 
 function draw() {
   if (gameState === "start") {
     showStartScreen();
   } else if (gameState === "play") {
-    background(bgColor);
-    drawPath();
+    image(bgImage, 0, 0, width, height); // Display background image
     drawCoins();
     drawPlayer();
     showStoryMessage();
+
+    if (showConfetti) {
+      // Generate confetti continuously
+      for (let i = 0; i < 5; i++) {
+        confetti.push(new ConfettiPiece(random(width), random(-50, 0)));
+      }
+
+      // Update and draw confetti
+      for (let i = confetti.length - 1; i >= 0; i--) {
+        confetti[i].update();
+        confetti[i].draw();
+
+        // Remove confetti if it goes off-screen to manage performance
+        if (confetti[i].y > height) {
+          confetti.splice(i, 1);
+        }
+      }
+
+      showEndMessage(); // Show "The End" message
+    }
   }
 }
 
-function drawPath() {
-  fill(220, 220, 180); // dirt path color
-  noStroke();
-  beginShape();
-  
-  // Draw a straight line across the canvas at y = 250
-  vertex(0, 250);  // Start at the left edge, y = 250
-  vertex(600, 250); // End at the right edge, y = 250
-  vertex(600, 400); // Move down to the bottom-right corner
-  vertex(0, 400);   // Move to the bottom-left corner
-  endShape(CLOSE);  // Close the shape
+function showStartScreen() {
+  background(50, 100, 150);
+  fill(255);
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  text("Methok's Journey", width / 2, height / 2 - 40);
+  textSize(16);
+  text("Press any key to Play", width / 2, height / 2 + 20);
 }
 
 function drawPlayer() {
@@ -98,17 +97,11 @@ function drawPlayer() {
   if (keyIsDown(UP_ARROW)) nextY -= 2;
   if (keyIsDown(DOWN_ARROW)) nextY += 2;
 
-  if (isOnPath(nextX, nextY)) {
-    player.x = nextX;
-    player.y = nextY;
-  }
+  // Update player position
+  player.x = nextX;
+  player.y = nextY;
 
   image(methok, player.x, player.y, player.size, player.size);
-}
-
-function isOnPath(x, y) {
-  let c = get(x + player.size / 2, y + player.size / 2);
-  return c[0] === 220 && c[1] === 220 && c[2] === 180;
 }
 
 function drawCoins() {
@@ -119,6 +112,7 @@ function drawCoins() {
       allCollected = false;
       image(coinImg, coins[i].x, coins[i].y, 30, 30);
 
+      // Check if player collected the coin
       if (dist(player.x, player.y, coins[i].x, coins[i].y) < 30) {
         coins[i].collected = true;
         storyIndex = i;
@@ -126,6 +120,10 @@ function drawCoins() {
         messageTimer = millis();
       }
     }
+  }
+
+  if (allCollected) {
+    showConfetti = true;
   }
 }
 
@@ -146,6 +144,14 @@ function showStoryMessage() {
     }
   }
 }
+
+function showEndMessage() {
+  fill(0); // Set the fill color to black
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  text("The End", width / 2, height / 2 - 50); // Move text slightly to the top
+}
+
 function keyPressed() {
   if (gameState === "start") {
     gameState = "play";
@@ -158,3 +164,35 @@ function mousePressed() {
   }
 }
 
+function resetGame() {
+  gameState = "start"; // Change game state to start
+  player.x = 20;
+  player.y = 315;
+  showConfetti = false;
+  confetti = []; // Clear confetti array
+  storyIndex = 0;
+  showMessage = false;
+
+  // Reset coins
+  for (let i = 0; i < coins.length; i++) {
+    coins[i].collected = false;
+  }
+}
+
+function ConfettiPiece(x, y) {
+  this.x = x;
+  this.y = y;
+  this.size = random(5, 10);
+  this.color = color(random(255), random(255), random(255));
+
+  this.update = function() {
+    this.y += random(1, 3);
+    this.x += random(-1, 1);
+  };
+
+  this.draw = function() {
+    fill(this.color);
+    noStroke();
+    ellipse(this.x, this.y, this.size, this.size);
+  };
+}
